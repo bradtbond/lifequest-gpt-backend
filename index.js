@@ -1,30 +1,31 @@
+// index.js
 const express = require('express');
-const fetch = require('node-fetch');
-require('dotenv').config();
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const { OpenAI } = require('openai');
+
 const app = express();
-app.use(express.json());
+app.use(cors());
+app.use(bodyParser.json());
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post('/gpt', async (req, res) => {
   try {
-    const { model, messages, temperature } = req.body;
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: model || 'gpt-4',
-        messages,
-        temperature: temperature || 0.8
-      })
+    const completion = await openai.chat.completions.create({
+      model: req.body.model || 'gpt-4',
+      messages: req.body.messages,
+      temperature: req.body.temperature || 0.7,
     });
-
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.json(completion);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'OpenAI API request failed.' });
   }
+});
+
+app.get('/', (req, res) => {
+  res.send('LifeQuest GPT backend is running.');
 });
 
 const PORT = process.env.PORT || 3000;
